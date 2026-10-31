@@ -1,0 +1,15 @@
+# Current users and privileged users
+getent passwd
+getent group wheel
+
+# Scheduled systemd timers
+systemctl list-timers --all
+
+# Listening network ports
+sudo ss -tulpn
+
+# Recent SSH activity
+sudo journalctl -u sshd --since "1 hour ago"
+
+# Web server errors
+sudo tail -n 30 /var/log/httpd/error_log
