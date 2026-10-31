@@ -13,3 +13,248 @@ sudo journalctl -u sshd --since "1 hour ago"
 
 # Web server errors
 sudo tail -n 30 /var/log/httpd/error_log
+
+# Foghorn — CCDC Linux Security Commands
+
+**Operating System:** Rocky Linux 9.x  
+**Assigned Services:** Wiki + Chat  
+**Purpose:** Investigate the Linux server, identify suspicious activity, protect services, and detect Red Team attacks.
+
+## 1. Current Users and Privileged Users
+
+**Purpose:** Identify all local user accounts and users with administrator privileges. Look for unexpected accounts and unauthorized members of the `wheel` group.
+
+```bash
+# List all local and directory-resolved user accounts
+getent passwd
+
+# List members of the wheel administrator group
+getent group wheel
+
+# Show currently logged-in users
+who
+
+# Show recent login history
+last -n 20
+
+# Show sudo permissions for the current user
+sudo -l
+```
+
+## 2. Scheduled Tasks and Persistence
+
+**Purpose:** Find scheduled tasks or services that execute automatically. Attackers may use these mechanisms to maintain access after a reboot.
+
+```bash
+# Show all systemd timers
+systemctl list-timers --all
+
+# List enabled services that may start automatically
+systemctl list-unit-files --type=service --state=enabled
+
+# Show system-wide cron configuration
+sudo cat /etc/crontab
+
+# List additional system cron jobs
+sudo ls -la /etc/cron.d/
+
+# Show current user's cron jobs
+crontab -l
+```
+
+## 3. Listening Network Ports
+
+**Purpose:** Identify exposed services and determine which processes are listening on network ports. Investigate unexpected ports or applications.
+
+```bash
+# Show listening TCP/UDP ports and owning processes
+sudo ss -tulpn
+
+# Show active TCP connections
+sudo ss -tnp
+
+# Show IP addresses
+ip -br addr
+
+# Display routing information
+ip route
+
+# Check firewall rules
+sudo firewall-cmd --list-all
+```
+
+## 4. Recent SSH Activity
+
+**Purpose:** Find failed authentication attempts, unexpected successful logins, and possible brute-force activity.
+
+```bash
+# Show SSH activity during the last hour
+sudo journalctl -u sshd --since "1 hour ago"
+
+# Show failed SSH login events
+sudo journalctl -u sshd --since "1 hour ago" | grep -Ei "failed|invalid"
+
+# Show successful SSH authentication events
+sudo journalctl -u sshd --since "1 hour ago" | grep "Accepted"
+
+# Inspect effective SSH configuration
+sudo sshd -T
+```
+
+## 5. Web Server Errors — Wiki and Chat
+
+**Purpose:** Identify why the Wiki or Chat application might be unavailable. Check errors, service status, and HTTP responses.
+
+```bash
+# Show the latest Apache error messages
+sudo tail -n 30 /var/log/httpd/error_log
+
+# Check Apache service status
+sudo systemctl status httpd --no-pager
+
+# Test local HTTP availability
+curl -I http://localhost
+
+# Verify Apache configuration syntax
+sudo httpd -t
+
+# Show Apache virtual hosts
+sudo httpd -S
+```
+
+**Note:** These commands apply when Apache is installed. The actual competition's Wiki/Chat may use another web server or container.
+
+## 6. Running Processes and Services
+
+**Purpose:** Identify background applications and potentially suspicious processes. Look at executable paths, parent processes, and resource usage.
+
+```bash
+# List all running processes
+ps auxww
+
+# Display process relationships
+ps -ef --forest
+
+# List currently running systemd services
+systemctl list-units --type=service --state=running --no-pager
+
+# Show processes consuming the most CPU
+ps aux --sort=-%cpu | head -20
+
+# Show processes consuming the most memory
+ps aux --sort=-%mem | head -20
+```
+
+## 7. Firewall and SELinux
+
+**Purpose:** Check host-level security controls without accidentally disabling scored services.
+
+```bash
+# Display SELinux enforcement state
+getenforce
+
+# Show additional SELinux information
+sestatus
+
+# Check firewalld service state
+sudo firewall-cmd --state
+
+# Display active firewall zones
+sudo firewall-cmd --get-active-zones
+
+# Show rules for all zones
+sudo firewall-cmd --list-all-zones
+
+# Check recent SELinux denials
+sudo ausearch -m AVC,USER_AVC -ts recent
+```
+
+## 8. File Changes and Suspicious Files
+
+**Purpose:** Find newly modified files and unexpected changes to application directories. File changes are indicators to investigate, not automatic proof of compromise.
+
+```bash
+# Find files modified within the last hour in temporary directories
+sudo find /tmp /var/tmp -type f -mmin -60
+
+# Check recently modified Apache configuration files
+sudo find /etc/httpd -type f -mmin -60
+
+# Show files in the default Apache website directory
+sudo ls -lah /var/www/html/
+
+# Calculate a SHA-256 hash for a specific file
+sha256sum /path/to/file
+
+# Check package-managed files for changes
+sudo rpm -Va
+```
+
+## 9. Docker and Podman Containers
+
+**Purpose:** Discover whether Wiki or Chat applications are running inside containers rather than directly on Rocky Linux.
+
+```bash
+# List Docker containers, if Docker is installed
+sudo docker ps -a
+
+# List Podman containers, if Podman is installed
+sudo podman ps -a
+
+# List Podman images
+sudo podman images
+
+# Check whether Docker is running
+systemctl status docker --no-pager
+```
+
+## 10. System and Security Logs
+
+**Purpose:** Investigate system failures, unexpected activity, and potential security incidents.
+
+```bash
+# Show recent system errors
+sudo journalctl -p err -n 50 --no-pager
+
+# Show logs from the current boot
+sudo journalctl -b -n 100 --no-pager
+
+# Show recent authentication events from the system journal
+sudo journalctl _COMM=sshd -n 50 --no-pager
+
+# Show recent failed login records
+sudo lastb -n 20
+
+# Show recent reboots and shutdowns
+last -x -n 20
+```
+
+## 11. Run the Complete Foghorn Investigation Script
+
+**Purpose:** Collect system evidence into timestamped reports without manually running each command.
+
+```bash
+# Go to the downloaded GitHub repository
+cd ~/Foghorn
+
+# Run the complete investigation
+sudo bash foghorn-ccdc/ccdc-triage.sh all
+
+# Show the newest report directory
+sudo ls -dt /root/foghorn-triage-* | head -1
+
+# Read the listening-port report
+sudo cat "$(sudo ls -dt /root/foghorn-triage-* | head -1)/listeners.txt"
+```
+
+## Competition Safety Reminders
+
+- Identify existing Wiki and Chat services before making changes.
+- Preserve SSH access and required application ports.
+- Never automatically delete unfamiliar users, processes, or services.
+- Keep SELinux and the firewall enabled unless a verified configuration issue requires a controlled change.
+- Compare findings with a known, independently verified system baseline.
+- Do not upload passwords, private SSH keys, sensitive logs, or collected evidence to public GitHub repositories.
+- Follow WCComps rules on AI assistance and inject submissions.
+
+**Primary goal:** Maintain scored services while investigating and defending Foghorn from Red Team compromise.
