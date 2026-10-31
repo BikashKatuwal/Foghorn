@@ -1,0 +1,94 @@
+Step 1 — Install Git and unzip
+Git downloads your scripts from GitHub. Unzip extracts the downloaded toolkit.
+sudo dnf install -y git unzip
+
+
+You only need to install these once.
+Step 2 — Download your GitHub repository
+cd ~
+git clone https://github.com/BikashKatuwal/Foghorn.git
+
+
+Why? This creates a local Foghorn folder containing the files stored in your GitHub repository.
+
+If you've already cloned it, update it instead:
+cd ~/Foghorn
+git pull
+
+
+Step 3 — Enter the repository
+cd ~/Foghorn
+ls -la
+
+
+You should see:
+Foghorn-CCDC-Triage.zip
+
+
+Step 4 — Extract the script
+unzip -o Foghorn-CCDC-Triage.zip
+
+
+Why? The script is inside the ZIP archive. The -o option overwrites previously extracted files with the archive's versions, so use it only if you want to replace your earlier extracted copies.
+
+Verify:
+ls -la foghorn-ccdc/
+
+
+You should see ccdc-triage.sh and README.txt.
+Step 5 — Run the complete CCDC investigation
+sudo bash foghorn-ccdc/ccdc-triage.sh all
+
+
+This runs your investigation toolkit and collects information on accounts, processes, services, ports, firewall rules, SSH, logs, and persistence.
+
+It's designed to gather evidence without changing the system's security configuration.
+Step 6 — Find the generated reports
+Your script creates a new timestamped folder each time.
+
+To find the latest one:
+sudo ls -dt /root/foghorn-triage-*
+
+
+To see its files without typing a long folder name:
+sudo ls -lah "$(sudo ls -dt /root/foghorn-triage-* | head -1)"
+
+
+Step 7 — Read the reports
+Here are the most important reports for Foghorn:
+# Listening ports
+sudo cat "$(sudo ls -dt /root/foghorn-triage-* | head -1)/listeners.txt"
+
+# Running services
+sudo cat "$(sudo ls -dt /root/foghorn-triage-* | head -1)/running-services.txt"
+
+# Administrator group members
+sudo cat "$(sudo ls -dt /root/foghorn-triage-* | head -1)/wheel-members.txt"
+
+# Network connections
+sudo cat "$(sudo ls -dt /root/foghorn-triage-* | head -1)/connections.txt"
+
+# Firewall settings
+sudo cat "$(sudo ls -dt /root/foghorn-triage-* | head -1)/firewall.txt"
+
+
+Quick reference
+Command	Purpose
+git clone	Download GitHub repository
+git pull	Update existing repository
+unzip	Extract ZIP
+bash -n	Check script syntax
+sudo bash ... all	Run complete investigation
+ls	List files
+cat	Display file contents
+ss -tulpn	Identify listening network ports
+systemctl	Inspect running services
+
+The shortest way after the initial setup
+Once the repository is cloned and extracted, you only need these two commands to generate a fresh report:
+cd ~/Foghorn
+sudo bash foghorn-ccdc/ccdc-triage.sh all
+
+
+Then find its output:
+sudo ls -dt /root/foghorn-triage-*
